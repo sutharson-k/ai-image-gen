@@ -21,6 +21,21 @@ class DenoiseCanvasManager {
     this.canvas.height = height;
   }
 
+  /**
+   * Aspect-preset change. Resizes the canvas; if a finished photo was on
+   * screen it is cleared and fresh noise fills the new format, signalling
+   * that the next generation will use this shape.
+   */
+  applyAspect(width, height) {
+    const wasShowing = !!this.currentImage && !this.isGenerating;
+    this.initCanvas(width, height);
+    if (wasShowing) {
+      this.currentImage = null;
+      this.currentImageUrl = null;
+      this.startIdleNoise();
+    }
+  }
+
   startIdleNoise() {
     // Generates subtle authentic visual TV-static/diffusion noise while idle
     if (this.currentImage || this.isGenerating) return;
@@ -91,7 +106,10 @@ class DenoiseCanvasManager {
     this.currentImageUrl = imageUrl;
     const img = new Image();
     img.onload = () => {
-      this.ctx.drawImage(img, 0, 0, this.width, this.height);
+      // Size the canvas to the photo's true dimensions so non-square
+      // gallery items are never squashed onto a stale square canvas.
+      this.initCanvas(img.naturalWidth, img.naturalHeight);
+      this.ctx.drawImage(img, 0, 0);
       this.currentImage = img;
     };
     img.src = imageUrl;
@@ -156,7 +174,26 @@ class DenoiseCanvasManager {
     this.updateInspectorState();
   }
 
-  downloadCanvas(filename = 'diffusion-generation.png') {
+  async downloadCanvas(filename = 'diffusion-generation.png') {
+    // When a finished photo is on screen, fetch the full-resolution
+    // original instead of exporting the (possibly downscaled) canvas copy.
+    if (this.currentImageUrl) {
+      try {
+        const res = await fetch(this.currentImageUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+        return;
+      } catch (err) {
+        console.warn('Original download failed, falling back to canvas:', err);
+      }
+    }
+
     const link = document.createElement('a');
     link.download = filename;
     link.href = this.canvas.toDataURL('image/png');

@@ -141,13 +141,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (canvasSize) canvasSize.textContent = `${currentWidth} × ${currentHeight}`;
   }
 
+  function applyAspectFromDims(w, h) {
+    currentWidth = w;
+    currentHeight = h;
+    document.querySelectorAll('.aspect-btn').forEach(b => {
+      const match = parseInt(b.dataset.width) === w && parseInt(b.dataset.height) === h;
+      b.classList.toggle('active', match);
+    });
+    updateCanvasSizeLabel();
+  }
+
   document.querySelectorAll('.aspect-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.aspect-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentWidth = parseInt(btn.dataset.width);
       currentHeight = parseInt(btn.dataset.height);
-      canvasManager.initCanvas(currentWidth, currentHeight);
+      canvasManager.applyAspect(currentWidth, currentHeight);
       updateCanvasSizeLabel();
     });
   });
@@ -350,6 +360,9 @@ document.addEventListener('DOMContentLoaded', () => {
           stepsValue.textContent = item.steps;
           cfgRange.value = item.cfg_scale;
           cfgValue.textContent = item.cfg_scale.toFixed(1);
+          // Restore the photo's real dimensions too, so the canvas shows it
+          // un-squashed and the next Generate reuses the same aspect.
+          if (item.width && item.height) applyAspectFromDims(item.width, item.height);
           canvasManager.setFinalImage(item.url);
           statusDescription.textContent = `Loaded from gallery — ${item.created_at.slice(0, 10)}`;
         });

@@ -34,6 +34,16 @@ app = FastAPI(title="Real-Time Progressive Diffusion Studio", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.mount("/outputs", StaticFiles(directory=str(OUTPUTS_DIR)), name="outputs")
 
+
+@app.middleware("http")
+async def fresh_static_cache_headers(request, call_next):
+    # The studio UI is under active development: never let the browser serve
+    # a heuristically cached JS/CSS file that doesn't match the server code.
+    response = await call_next(request)
+    if request.url.path.startswith("/static"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
 # Core managers
 pipeline_manager = DiffusionPipelineManager()
 gallery_manager = GalleryManager()
