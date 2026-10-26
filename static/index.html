@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>Nebula Diffusion — real-time studio</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e6a75c' stroke-width='1.8'><circle cx='12' cy='12' r='8'/><path d='M12 2v6M12 16v6M2 12h6M16 12h6'/></svg>">
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo-area">
+      <div class="logo-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8"/>
+          <path d="M12 1.5v6M12 16.5v6M1.5 12h6M16.5 12h6"/>
+        </svg>
+      </div>
+      <div class="app-title">
+        <span class="app-name">Nebula Diffusion</span>
+        <span class="app-tag">real-time studio</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Studio Layout -->
+  <main class="app-main">
+    <!-- Left Rail: Generation Controls -->
+    <aside class="sidebar-controls">
+      <div class="controls-scroll">
+        <!-- Model -->
+        <div class="control-group">
+          <label class="control-label" for="modelSelect">Diffusion model</label>
+          <select id="modelSelect" class="custom-select">
+            <option value="runwayml/stable-diffusion-v1-5">Stable Diffusion v1.5 (local)</option>
+          </select>
+        </div>
+
+        <!-- Positive Prompt -->
+        <div class="control-group">
+          <label class="control-label" for="promptInput">Prompt</label>
+          <textarea id="promptInput" class="prompt-input" placeholder="Describe the image you want to see emerge from noise…"></textarea>
+          <div class="prompt-suggestions">
+            <button type="button" class="suggestion-chip" data-prompt="cyberpunk street neon reflections rain highly detailed 8k octane render">Cyberpunk</button>
+            <button type="button" class="suggestion-chip" data-prompt="cinematic portrait hyperrealistic studio lighting 85mm lens soft bokeh">Cinematic portrait</button>
+            <button type="button" class="suggestion-chip" data-prompt="epic mythical fantasy landscape floating islands sunset clouds vibrant">Fantasy landscape</button>
+            <button type="button" class="suggestion-chip" data-prompt="futuristic mecha robot sleek titanium gold accents dramatic lighting">Sci-fi mecha</button>
+          </div>
+        </div>
+
+        <!-- Negative Prompt (Collapsible) -->
+        <div class="control-group">
+          <button type="button" class="control-label collapsible-header" id="negativePromptToggle" aria-expanded="false" aria-controls="negativePromptWrap">
+            <span>Negative prompt</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          <div class="collapsible-content hidden" id="negativePromptWrap">
+            <textarea id="negativePromptInput" class="prompt-input prompt-input-compact" placeholder="blurry, distorted, low quality, bad anatomy, deformed"></textarea>
+          </div>
+        </div>
+
+        <hr class="section-rule">
+
+        <!-- Aspect Ratio / Dimensions -->
+        <div class="control-group">
+          <span class="control-label">Aspect ratio</span>
+          <div class="aspect-btn-grid">
+            <button type="button" class="aspect-btn active" data-width="512" data-height="512">
+              <span class="ratio-name">1:1</span>
+              <span class="ratio-sub">512 × 512</span>
+            </button>
+            <button type="button" class="aspect-btn" data-width="512" data-height="768">
+              <span class="ratio-name">3:4</span>
+              <span class="ratio-sub">512 × 768</span>
+            </button>
+            <button type="button" class="aspect-btn" data-width="768" data-height="512">
+              <span class="ratio-name">4:3</span>
+              <span class="ratio-sub">768 × 512</span>
+            </button>
+          </div>
+        </div>
+
+        <hr class="section-rule">
+
+        <!-- Sampling -->
+        <div class="control-group">
+          <label class="control-label" for="schedulerSelect">Sampling method</label>
+          <select id="schedulerSelect" class="custom-select">
+            <option value="euler_a">Euler Ancestral (Euler a)</option>
+            <option value="dpm_2m">DPM++ 2M Karras</option>
+            <option value="ddim">DDIM</option>
+          </select>
+        </div>
+
+        <div class="control-pair">
+          <div class="control-group">
+            <label class="control-label" for="stepsRange">
+              Steps <span class="value-badge" id="stepsValue">20</span>
+            </label>
+            <div class="slider-container">
+              <input type="range" id="stepsRange" min="1" max="50" value="20" step="1">
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="cfgRange">
+              Guidance <span class="value-badge" id="cfgValue">7.5</span>
+            </label>
+            <div class="slider-container">
+              <input type="range" id="cfgRange" min="1.0" max="15.0" value="7.5" step="0.5">
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="seedInput">Seed</label>
+          <div class="input-row">
+            <input type="number" id="seedInput" class="custom-input" placeholder="Random (−1)">
+            <button type="button" class="tool-btn tool-btn-wide" id="randomSeedBtn" title="Randomise seed">Random</button>
+          </div>
+        </div>
+
+        <hr class="section-rule">
+
+        <!-- Preview -->
+        <div class="control-group">
+          <label class="control-label" for="previewFreq">
+            Preview frequency <span class="value-badge" id="previewFreqValue">Every step</span>
+          </label>
+          <div class="slider-container">
+            <input type="range" id="previewFreq" min="1" max="4" value="1" step="1">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="previewMode">Latent preview</label>
+          <select id="previewMode" class="custom-select">
+            <option value="vae">Full VAE decode (high quality)</option>
+            <option value="linear">Fast linear projection (&lt;1 ms)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Pinned actions: always reachable, never below the fold -->
+      <div class="rail-actions">
+        <button type="button" class="btn-generate" id="btnGenerate">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Generate image
+        </button>
+        <button type="button" class="btn-cancel" id="btnCancel" aria-label="Cancel generation">Stop</button>
+      </div>
+    </aside>
+
+    <!-- Center Stage: The Live Denoising Canvas -->
+    <section class="canvas-area">
+      <!-- Canvas Topbar -->
+      <div class="canvas-topbar">
+        <div class="canvas-status">
+          <span class="status-dot idle" id="canvasDot"></span>
+          <span id="statusDescription">Initial Gaussian noise field</span>
+          <span class="canvas-size" id="canvasSize">512 × 512</span>
+        </div>
+        <div class="canvas-toolbar">
+          <button type="button" class="tool-btn" id="btnReset" title="Reset canvas to noise" aria-label="Reset canvas to noise">↺</button>
+          <button type="button" class="tool-btn" id="btnDownload" title="Download canvas as PNG" aria-label="Download canvas as PNG">⬇</button>
+        </div>
+      </div>
+
+      <!-- Canvas Stage Viewport -->
+      <div class="canvas-stage">
+        <div class="canvas-wrapper">
+          <canvas id="denoiseCanvas"></canvas>
+
+          <!-- Live Progressive Step Indicator Overlay -->
+          <div class="progress-overlay" id="progressOverlay">
+            <div class="progress-header">
+              <span class="step-badge" id="stepBadge">Idle</span>
+              <span class="progress-meta">
+                <span class="speed-badge" id="speedBadge">-- it/s</span>
+                <span class="elapsed-badge" id="elapsedBadge">--</span>
+              </span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step Inspector / History Scrubber Filmstrip -->
+      <div class="step-inspector-bar">
+        <div class="filmstrip-head">
+          <span class="filmstrip-title">Step previews</span>
+          <span class="filmstrip-count" id="stepCount">0 frames</span>
+        </div>
+        <div class="step-filmstrip" id="stepFilmstrip"></div>
+        <p class="filmstrip-empty" id="filmstripEmpty">Each denoising step appears here as the image resolves.</p>
+      </div>
+    </section>
+
+    <!-- Right Rail: Saved Gallery -->
+    <aside class="gallery-panel">
+      <div class="gallery-header">
+        <span>Gallery</span>
+        <span class="gallery-count" id="galleryCount">0 photos</span>
+      </div>
+      <div class="gallery-grid" id="galleryGrid">
+        <!-- Saved generations dynamically load here -->
+      </div>
+    </aside>
+  </main>
+
+  <!-- Scripts -->
+  <script src="/static/js/canvas.js"></script>
+  <script src="/static/js/websocket.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

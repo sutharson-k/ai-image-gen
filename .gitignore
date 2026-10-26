@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+
+# Model weights / Hugging Face cache (multi-GB, downloaded on first run)
+model/
+
+# Generated gallery images
+outputs/
+
+# Local scratch
+.tmp-shots/
+.freebuff/

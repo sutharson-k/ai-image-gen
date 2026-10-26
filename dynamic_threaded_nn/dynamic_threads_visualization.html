@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dynamic Threaded Neural Network Visualization</title>
+<style>
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 {
+    color: #38bdf8;
+    margin-bottom: 8px;
+    font-size: 24px;
+  }
+  .subtitle {
+    color: #94a3b8;
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+  .controls {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  select, button {
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #475569;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  svg {
+    background: #111827;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 1000px;
+    height: 480px;
+  }
+  .layer-box {
+    fill: #1e293b;
+    stroke: #38bdf8;
+    stroke-width: 2;
+    rx: 8;
+  }
+  .layer-title {
+    fill: #f8fafc;
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+  .thread-path {
+    fill: none;
+    transition: all 0.4s ease;
+  }
+  .stats {
+    margin-top: 16px;
+    background: #1e293b;
+    padding: 16px;
+    border-radius: 8px;
+    max-width: 1000px;
+    font-size: 14px;
+    border-left: 4px solid #38bdf8;
+  }
+</style>
+</head>
+<body>
+  <h1>Dynamic Threaded Neural Network</h1>
+  <div class="subtitle">Dynamic connection threads routed adaptively per input sample</div>
+  
+  <div class="controls">
+    <label for="sampleSelect">Select Input Sample:</label>
+    <select id="sampleSelect" onchange="renderSample(this.value)">
+      <option value="0">Sample #0</option><option value="1">Sample #1</option><option value="2">Sample #2</option><option value="3">Sample #3</option><option value="4">Sample #4</option>
+    </select>
+  </div>
+
+  <svg id="networkSvg" viewBox="0 0 1000 480"></svg>
+  
+  <div id="statsBox" class="stats"></div>
+
+  <script>
+    const layerNames = ['Layer 0 (2d)', 'Layer 1 (32d)', 'Layer 2 (32d)', 'Layer 3 (16d)', 'Layer 4 (3d)'];
+    const numLayers = 5;
+    const samples = [{'sample_index': 0, 'weights': [[0.0, 0.015791013836860657, 0.0, 0.0, 0.9842090010643005], [0.0, 0.0, 0.7898357510566711, 0.0, 0.21016424894332886], [0.0, 0.0, 0.0, 0.9999951124191284, 4.932349384034751e-06], [0.0, 0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 0.0, 0.0]], 'mask': [[0.0, 1.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 0.0, 0.0]]}, {'sample_index': 1, 'weights': [[0.0, 0.15359771251678467, 0.0, 0.0, 0.8464023470878601], [0.0, 0.0, 0.6728329062461853, 0.0, 0.3271670937538147], [0.0, 0.0, 0.0, 0.6070629954338074, 0.39293694496154785], [0.0, 0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 0.0, 0.0]], 'mask': [[0.0, 1.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 0.0, 0.0]]}, {'sample_index': 2, 'weights': [[0.0, 0.8450478911399841, 0.15495213866233826, 0.0, 0.0], [0.0, 0.0, 0.05208173021674156, 0.0, 0.9479182362556458], [0.0, 0.0, 0.0, 0.06886439025402069, 0.9311355948448181], [0.0, 0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 0.0, 0.0]], 'mask': [[0.0, 1.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 0.0, 0.0]]}, {'sample_index': 3, 'weights': [[0.0, 0.7754130363464355, 0.0, 0.0, 0.22458696365356445], [0.0, 0.0, 0.6426698565483093, 0.0, 0.3573301434516907], [0.0, 0.0, 0.0, 0.4324587285518646, 0.5675413012504578], [0.0, 0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 0.0, 0.0]], 'mask': [[0.0, 1.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 0.0, 0.0]]}, {'sample_index': 4, 'weights': [[0.0, 0.8372468948364258, 0.0, 0.0, 0.16275310516357422], [0.0, 0.0, 0.7053040266036987, 0.0, 0.2946959435939789], [0.0, 0.0, 0.0, 0.3041342794895172, 0.6958656907081604], [0.0, 0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 0.0, 0.0]], 'mask': [[0.0, 1.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 0.0, 0.0]]}];
+    const svg = document.getElementById('networkSvg');
+    const statsBox = document.getElementById('statsBox');
+
+    function renderSample(sampleIdx) {
+      const data = samples[sampleIdx];
+      const weights = data.weights;
+      const mask = data.mask;
+      
+      svg.innerHTML = '';
+      
+      const width = 1000;
+      const height = 480;
+      const layerSpacing = width / (numLayers + 1);
+      
+      // Node positions
+      const layerPositions = [];
+      for (let i = 0; i < numLayers; i++) {
+        const x = (i + 1) * layerSpacing;
+        const y = height / 2;
+        layerPositions.push({ x, y });
+      }
+      
+      // Draw dynamic threads (bezier curves)
+      let activeThreadCount = 0;
+      let threadSummaries = [];
+
+      for (let i = 0; i < numLayers; i++) {
+        for (let j = i + 1; j < numLayers; j++) {
+          const weight = weights[i][j];
+          const isMasked = mask[i][j] > 0;
+          
+          if (weight > 0.01) {
+            activeThreadCount++;
+            const p1 = layerPositions[i];
+            const p2 = layerPositions[j];
+            const dx = (p2.x - p1.x) / 2;
+            const dy = (j - i > 1) ? ((j % 2 === 0 ? 1 : -1) * (j - i) * 35) : 0;
+            const cy = height / 2 + dy;
+            
+            const pathData = `M ${p1.x + 40} ${p1.y} Q ${p1.x + dx} ${cy} ${p2.x - 40} ${p2.y}`;
+            
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', pathData);
+            path.setAttribute('class', 'thread-path');
+            
+            // Dynamic color and glow based on weight
+            const alpha = Math.min(1.0, Math.max(0.2, weight * 1.5));
+            const strokeWidth = Math.max(1.5, weight * 6);
+            const color = (j - i > 1) ? `rgba(244, 63, 94, ${alpha})` : `rgba(56, 189, 248, ${alpha})`;
+            
+            path.setAttribute('stroke', color);
+            path.setAttribute('stroke-width', strokeWidth);
+            
+            if (isMasked) {
+              path.setAttribute('stroke-dasharray', 'none');
+            } else {
+              path.setAttribute('stroke-dasharray', '4 4');
+            }
+            
+            svg.appendChild(path);
+            threadSummaries.push(`${layerNames[i]} &rarr; ${layerNames[j]} (wt: ${weight.toFixed(3)})`);
+          }
+        }
+      }
+      
+      // Draw layer nodes
+      for (let i = 0; i < numLayers; i++) {
+        const pos = layerPositions[i];
+        
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', pos.x - 45);
+        rect.setAttribute('y', pos.y - 45);
+        rect.setAttribute('width', 90);
+        rect.setAttribute('height', 90);
+        rect.setAttribute('class', 'layer-box');
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', pos.x);
+        text.setAttribute('y', pos.y + 5);
+        text.setAttribute('class', 'layer-title');
+        text.textContent = layerNames[i];
+        
+        g.appendChild(rect);
+        g.appendChild(text);
+        svg.appendChild(g);
+      }
+
+      statsBox.innerHTML = `<strong>Active Dynamic Threads:</strong> ${activeThreadCount}<br>` +
+                           `<strong>Active Connections:</strong> ${threadSummaries.join(' | ')}`;
+    }
+
+    // Initial render
+    renderSample(0);
+  </script>
+</body>
+</html>
